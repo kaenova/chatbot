@@ -271,8 +271,6 @@ export function convertLangchainMessageContent(content: MessageContent): ThreadU
 
     // @ts-expect-error // TypeScript is not able to infer the type correctly here
     return content.map(item => {
-      console.log("Content mapping: ", item);
-
       if (typeof item === "string") {
         return {
           type: "text" as const,

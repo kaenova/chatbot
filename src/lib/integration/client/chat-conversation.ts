@@ -1,21 +1,95 @@
 'use client'
 
-import { CompositeAttachmentAdapter, SimpleImageAttachmentAdapter, SimpleTextAttachmentAdapter, ThreadHistoryAdapter, ThreadMessage } from "@assistant-ui/react";
-import { useDataStreamRuntime } from "@assistant-ui/react-data-stream";
+import { AttachmentAdapter, CompleteAttachment, CompositeAttachmentAdapter, PendingAttachment, SimpleImageAttachmentAdapter, SimpleTextAttachmentAdapter, ThreadHistoryAdapter, ThreadMessage } from "@assistant-ui/react";
 import { formatRelativeTime } from "@/utils/date-utils";
-import { loadFromLanggraphStateHistoryJSON } from "@/utils/langgraph-message-conversion";
+import { loadFromLanggraphStateHistoryJSON } from "@/utils/langgraph/to-assistant-ui";
+import { useCustomDataStreamRuntime } from "@/utils/custom-data-stream-runtime";
 
 const BaseAPIPath = "/api/be"
 
 
+// TODO: Work in progress -kaenova
+class PDFAttachmentAdapter implements AttachmentAdapter {
+  accept = "application/pdf";
+
+  async add({ file }: { file: File }): Promise<PendingAttachment> {
+    // Validate file size
+    const maxSize = 10 * 1024 * 1024; // 10MB limit
+    if (file.size > maxSize) {
+      throw new Error("PDF size exceeds 10MB limit");
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      type: "document",
+      name: file.name,
+      file,
+      // @ts-expect-error // TypeScript is not able to infer the type correctly here
+      status: { type: "running" },
+    };
+  }
+
+  async send(attachment: PendingAttachment): Promise<CompleteAttachment> {
+    // Option 1: Extract text from PDF (requires pdf parsing library)
+    // const text = await this.extractTextFromPDF(attachment.file);
+    let dataURL = ""
+    try {
+      dataURL = await this.fileToBase64DataURL(attachment.file)
+    } catch (error) {
+      throw new Error(`Failed to read PDF file ${error}`);
+    }
+
+    return {
+      id: attachment.id,
+      type: "document",
+      name: attachment.name,
+      contentType: attachment.file.type,
+      content: [
+        {
+          type: "file",
+          filename: attachment.name,
+          mimeType: attachment.file.type,
+          data: dataURL
+        },
+      ],
+      status: { type: "complete" },
+    };
+  }
+
+  async remove(attachment: PendingAttachment): Promise<void> {
+    // Cleanup if needed
+  }
+
+  private async fileToBase64DataURL(file: File): Promise<string> {
+    // Extract to base64 with filename added
+    // Example
+    "data:text/csv;base64,TmFtZSxBZ2UsQnJlZWQsQ29sb3IKQnVkZHksMyxHb2xkZW4gUmV0cmlldmVyLEdvbGRlbgpNYXgsNSxHZXJtYW4gU2hlcGhlcmQsQmxhY2sgYW5kIFRhbgpCYWlsZXksMixMYWJyYWRvciBSZXRyaWV2ZXIsQ2hvY29sYXRlCkx1Y3ksNCxCZWFnbGUsVHJpLWNvbG9yCkNoYXJsaWUsNixQb29kbGUsV2hpdGUKRGFpc3ksMSxCdWxsZG9nLEJyb3duIGFuZCBXaGl0ZQpDb29wZXIsNyxTaWJlcmlhbiBIdXNreSxHcmF5IGFuZCBXaGl0ZQpNb2xseSw0LERhY2hzaHVuZCxSZWQKUm9ja3ksMixCb3hlcixGYXduCkJlbGxhLDUsWW9ya3NoaXJlIFRlcnJpZXIsQmxhY2sgYW5kIFRhbg==,filename:dogs.csv"
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        resolve(`${reader.result},filename:${encodeURIComponent(file.name)}`);
+      };
+
+      reader.onerror = (error) => {
+        reject(error);
+      };
+
+      reader.readAsDataURL(file); // Read the file as a Data URL
+    });
+  }
+}
+
 // Attachments Handler
 const CompositeAttachmentsAdapter = new CompositeAttachmentAdapter([
   new SimpleImageAttachmentAdapter(),
-  new SimpleTextAttachmentAdapter(),
+  // new SimpleTextAttachmentAdapter(),
+  // new PDFAttachmentAdapter(),
 ])
 
 // First Chat API Runtime (without conversation ID parameters)
-export const FirstChatAPIRuntime = () => useDataStreamRuntime({
+export const FirstChatAPIRuntime = () => useCustomDataStreamRuntime({
   api: `${BaseAPIPath}/chat`,
   adapters: {
     attachments: CompositeAttachmentsAdapter,
@@ -46,12 +120,12 @@ export async function GetLastConversationId(): Promise<string | null> {
 // You need to provide the conversationId and historyAdapter
 // The conversationId is obtained from the URL parameters
 // The historyAdapter is used to load and append messages to the thread
-export const ChatWithConversationIDAPIRuntime = (conversationId: string, historyAdapter: ThreadHistoryAdapter) => useDataStreamRuntime({
+export const ChatWithConversationIDAPIRuntime = (conversationId: string, historyAdapter: ThreadHistoryAdapter) => useCustomDataStreamRuntime({
   api: `${BaseAPIPath}/conversations/${conversationId}/chat`,
   adapters: {
     history: historyAdapter,
     attachments: CompositeAttachmentsAdapter,
-  }
+  },
 })
 
 type LoadHistoryResponseType = { message: ThreadMessage, parentId: string | null }[] | null

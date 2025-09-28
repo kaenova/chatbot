@@ -38,6 +38,7 @@ import { ChatMessageSkeleton } from "@/components/ChatMessageSkeleton";
 const Settings = {
   attachments: true,
   editMessages: false, // Currently we dont support editing user messages
+  regenerate: false, // Currently we dont support regenerating assistant messages
 }
 
 interface ThreadProps {
@@ -354,10 +355,12 @@ const AssistantActionBar: FC = () => {
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
       <ActionBarPrimitive.Reload asChild>
-        {/* Disble for now, because we dont support regenerating messages yet
-        <TooltipIconButton tooltip="Refresh">
-          <RefreshCwIcon />
-        </TooltipIconButton> */}
+        {
+          Settings.regenerate &&
+          <TooltipIconButton tooltip="Refresh">
+            <RefreshCwIcon />
+          </TooltipIconButton>
+        }
       </ActionBarPrimitive.Reload>
     </ActionBarPrimitive.Root>
   );

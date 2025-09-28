@@ -223,7 +223,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
         loadConversations()
       }, 20 * 1000); // Refresh every 20 seconds
       
-      
       return () => {
         clearInterval(autoUpdate)
       }

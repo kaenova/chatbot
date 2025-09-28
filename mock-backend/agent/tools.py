@@ -137,8 +137,8 @@ if (os.getenv("AZURE_SEARCH_ENDPOINT") and
                 chunk_index = result['metadata'].get('chunk_index', 0)
                 id_ = result['metadata'].get('id', 'Unknown')
                 content = result['content']
-                output += f"# {filename} {chunk_index}\n"
-                output += f"- chunk_id/id: {id_}\n"
+                output += f"# File: {filename} Chunk [{chunk_index}]\n"
+                output += f"**chunk_id/id**: `{id_}`\n"
                 output += "Content:\n```\n"
                 output += f"{content}\n"
                 output += "```\n\n"
@@ -202,8 +202,8 @@ if (os.getenv("AZURE_SEARCH_ENDPOINT") and
                 chunk_index = result['metadata'].get('chunk_index', 0)
                 id_ = result['metadata'].get('id', 'Unknown')
                 content = result['content']
-                output += f"# {filename} {chunk_index}\n"
-                output += f"- chunk_id/id: {id_}\n"
+                output += f"# File: {filename} Chunk [{chunk_index}]\n"
+                output += f"**chunk_id/id**: `{id_}`\n"
                 output += "Content:\n```\n"
                 output += f"{content}\n"
                 output += "```\n\n"
@@ -256,8 +256,8 @@ if (os.getenv("AZURE_SEARCH_ENDPOINT") and
                 chunk_index = result['metadata'].get('chunk_index', 0)
                 id_ = result['metadata'].get('id', 'Unknown')
                 content = result['content']
-                output += f"# {filename} {chunk_index}\n"
-                output += f"- chunk_id/id: {id_}\n"
+                output += f"# File: {filename} Chunk [{chunk_index}]\n"
+                output += f"**chunk_id/id**: `{id_}`\n"
                 output += "Content:\n```\n"
                 output += f"{content}\n"
                 output += "```\n\n"
@@ -335,8 +335,8 @@ if (os.getenv("AZURE_SEARCH_ENDPOINT") and
                         chunk_index = result['metadata'].get('chunk_index', 0)
                         id_ = result['metadata'].get('id', 'Unknown')
                         content = result['content']
-                        output += f"# {filename} {chunk_index}\n"
-                        output += f"- chunk_id/id: {id_}\n"
+                        output += f"# File: {filename} Chunk [{chunk_index}]\n"
+                        output += f"**chunk_id/id**: {id_}\n"
                         output += "Content:\n```\n"
                         output += f"{content}\n"
                         output += "```\n\n"

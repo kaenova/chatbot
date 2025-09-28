@@ -268,7 +268,11 @@ export function convertLangchainMessageContent(content: MessageContent): ThreadU
   }
 
   if (Array.isArray(content)) {
+
+    // @ts-expect-error // TypeScript is not able to infer the type correctly here
     return content.map(item => {
+      console.log("Content mapping: ", item);
+
       if (typeof item === "string") {
         return {
           type: "text" as const,
@@ -285,10 +289,33 @@ export function convertLangchainMessageContent(content: MessageContent): ThreadU
 
       // Handle other content types (images, files, etc.)
       if (typeof item === "object" && item.type === "image_url") {
+        if (item.image_url && item.image_url.url) {
+          return {
+            type: "image" as const,
+            image: item.image_url.url,
+          };
+        }
+
         return {
           type: "image" as const,
-          image: item.image_url?.url || "",
+          image: item.image_url || "",
         };
+      }
+
+      // Handle image in base64
+      if (typeof item === "object" && item.type === "image" && item.source_type === "base64" && item.data && item.mime_type) {
+          return {
+            type: "image" as const,
+            image: `data:${item.mime_type};base64,${item.data}`,
+          }
+      }
+
+      if (typeof item === "object" && item.type === "image" && item.image) {
+          return {
+            type: "image" as const,
+            image: item.image,
+            text: item.text || undefined,
+          }
       }
 
       // Fallback to text

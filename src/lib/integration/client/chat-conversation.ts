@@ -1,15 +1,25 @@
 'use client'
 
-import { ThreadHistoryAdapter, ThreadMessage } from "@assistant-ui/react";
+import { CompositeAttachmentAdapter, SimpleImageAttachmentAdapter, SimpleTextAttachmentAdapter, ThreadHistoryAdapter, ThreadMessage } from "@assistant-ui/react";
 import { useDataStreamRuntime } from "@assistant-ui/react-data-stream";
 import { formatRelativeTime } from "@/utils/date-utils";
 import { loadFromLanggraphStateHistoryJSON } from "@/utils/langgraph-message-conversion";
 
 const BaseAPIPath = "/api/be"
 
+
+// Attachments Handler
+const CompositeAttachmentsAdapter = new CompositeAttachmentAdapter([
+  new SimpleImageAttachmentAdapter(),
+  new SimpleTextAttachmentAdapter(),
+])
+
 // First Chat API Runtime (without conversation ID parameters)
 export const FirstChatAPIRuntime = () => useDataStreamRuntime({
   api: `${BaseAPIPath}/chat`,
+  adapters: {
+    attachments: CompositeAttachmentsAdapter,
+  }
 })
 
 // Get Last Conversation ID from A User
@@ -39,7 +49,8 @@ export async function GetLastConversationId(): Promise<string | null> {
 export const ChatWithConversationIDAPIRuntime = (conversationId: string, historyAdapter: ThreadHistoryAdapter) => useDataStreamRuntime({
   api: `${BaseAPIPath}/conversations/${conversationId}/chat`,
   adapters: {
-    history: historyAdapter
+    history: historyAdapter,
+    attachments: CompositeAttachmentsAdapter,
   }
 })
 

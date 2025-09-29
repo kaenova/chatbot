@@ -1,25 +1,24 @@
 "use client";
 
-import { Download, ExternalLinkIcon, FileTextIcon } from "lucide-react";
+/**
+ * Component that handles markdown format
+ * [doc-(....)]
+ */
+
+import { Download, FileTextIcon } from "lucide-react";
 import { type FC, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChunkData, getChunkData } from "@/lib/integration/client/chunk";
 
 // Props for the doc placeholder component
-interface DocPlaceholderProps {
+interface CustomDocReferenceProps {
   id: string;
   className?: string;
   onClick?: (id: string) => void;
 }
 
-// Props for the link placeholder component
-interface LinkPlaceholderProps {
-  url: string;
-  className?: string;
-}
-
-export const DocPlaceholder: FC<DocPlaceholderProps> = ({
+export const CustomDocReference: FC<CustomDocReferenceProps> = ({
   id,
   className,
   onClick
@@ -125,37 +124,3 @@ export const DocPlaceholder: FC<DocPlaceholderProps> = ({
   );
 };
 
-// Placeholder component for [link-(url)] patterns
-export const LinkPlaceholder: FC<LinkPlaceholderProps> = ({ 
-  url, 
-  className 
-}) => {
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  // Extract domain for display
-  const getDomain = (url: string) => {
-    try {
-      const domain = new URL(url).hostname;
-      return domain.replace('www.', '');
-    } catch {
-      return url.length > 30 ? url.substring(0, 30) + '...' : url;
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "aui-link-placeholder inline-flex items-center gap-1 rounded-md bg-primary/5 px-2 py-1 text-sm font-medium text-primary/80 hover:bg-primary/10 hover:text-primary transition-colors border border-primary/15 hover:border-primary/25 mx-2",
-        className
-      )}
-      title={`Open link: ${url}`}
-    >
-      <ExternalLinkIcon className="h-3 w-3" />
-      <span>{getDomain(url)}</span>
-    </button>
-  );
-};

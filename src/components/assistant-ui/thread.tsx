@@ -231,11 +231,12 @@ interface ComposerProps {
 
 const Composer: FC<ComposerProps> = ({ isDisabled = false }) => {
 
+  const threadExist = useAssistantState(({thread}) => thread.messages.length > 0)
   const text = useAssistantState(({composer}) => composer.text)
   const isEmpty = text.trim().length < 1
 
   return (
-    <div className="aui-composer-wrapper sticky bottom-0 mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 overflow-visible rounded-t-3xl bg-background pb-4 md:pb-6">
+    <div className="aui-composer-wrapper sticky bottom-0 mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 overflow-visible rounded-t-3xl bg-background pb-2 md:pb-4">
       <ThreadScrollToBottom />
       {
         !isDisabled &&
@@ -243,21 +244,34 @@ const Composer: FC<ComposerProps> = ({ isDisabled = false }) => {
         <ThreadWelcomeSuggestions />
       </ThreadPrimitive.Empty>
       }
-      <ComposerPrimitive.Root className={cn(
-        "aui-composer-root relative flex w-full flex-col rounded-3xl border border-border bg-muted px-1 pt-2 shadow-[0_9px_9px_0px_rgba(0,0,0,0.01),0_2px_5px_0px_rgba(0,0,0,0.06)] dark:border-muted-foreground/15",
-        isDisabled && "opacity-50 pointer-events-none"
-      )}>
-        <ComposerAttachments />
-        <ComposerPrimitive.Input
-          placeholder={isDisabled ? "Loading conversation..." : "Send a message..."}
-          className="aui-composer-input mb-1 max-h-32 min-h-16 w-full resize-none bg-transparent px-3.5 pt-1.5 pb-3 text-base outline-none placeholder:text-muted-foreground focus:outline-primary"
-          rows={1}
-          autoFocus={!isDisabled}
-          aria-label="Message input"
-          disabled={isDisabled}
-        />
-        <ComposerAction isDisabled={isDisabled || isEmpty} />
-      </ComposerPrimitive.Root>
+      <div className="flex flex-col space-y-2">
+        <ComposerPrimitive.Root className={cn(
+          "aui-composer-root relative flex w-full flex-col rounded-3xl border border-border bg-muted px-1 pt-2 shadow-[0_9px_9px_0px_rgba(0,0,0,0.01),0_2px_5px_0px_rgba(0,0,0,0.06)] dark:border-muted-foreground/15",
+          isDisabled && "opacity-50 pointer-events-none"
+        )}>
+          <ComposerAttachments />
+          <ComposerPrimitive.Input
+            placeholder={isDisabled ? "Loading conversation..." : "Send a message..."}
+            className="aui-composer-input mb-1 max-h-32 min-h-16 w-full resize-none bg-transparent px-3.5 pt-1.5 pb-3 text-base outline-none placeholder:text-muted-foreground focus:outline-primary"
+            rows={1}
+            autoFocus={!isDisabled}
+            aria-label="Message input"
+            disabled={isDisabled}
+            />
+          <ComposerAction isDisabled={isDisabled || isEmpty} />
+        </ComposerPrimitive.Root>
+        {
+          threadExist &&
+          <m.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="w-full text-muted-foreground text-xs text-center"
+          >
+            AI may be wrong. Verify important info.
+          </m.div>
+        }
+      </div>
     </div>
   );
 };

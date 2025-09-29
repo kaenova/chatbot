@@ -2,8 +2,10 @@ import json
 
 from utils.uuid import generate_uuid
 from langchain_core.load import dumps
+from langchain_core.messages.human import HumanMessage
 from lib.auth import get_authenticated_user
 from utils.stream_protocol import generate_stream
+from utils.message_conversion import from_assistant_ui_contents_to_langgraph_contents
 
 from typing import Annotated
 from pydantic import BaseModel
@@ -26,7 +28,17 @@ async def chat_completions(request: ChatRequest, _: Annotated[str, Depends(get_a
         return {"error": "Missing userid header"}
 
     conversation_id = generate_uuid()
-    input_message = request.messages[-1] if request.messages else ""
+
+    # Convert the input message 
+    if type(request.messages) is not list or len(request.messages) == 0:
+        return {"error": "Invalid messages format"}
+    
+    last_message = request.messages[-1] if request.messages else ""
+    last_message_langgraph_content = from_assistant_ui_contents_to_langgraph_contents(last_message['content'])
+    input_message = [{
+        "role": "user",
+        "content": last_message_langgraph_content
+    }]
 
     # Add user and the conversation id to the database
     db_manager.create_conversation(conversation_id, userid)
@@ -128,11 +140,21 @@ def chat_conversation(_: Annotated[str, Depends(get_authenticated_user)], userid
     if not request:
         return {"error": "Missing request body"}
 
-    input_message = request.messages[-1] if request.messages else ""
 
     # Check if the conversation exists and belongs to the user
     if not db_manager.conversation_exists(conversation_id, userid):
         raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Convert the input message 
+    if type(request.messages) is not list or len(request.messages) == 0:
+        return {"error": "Invalid messages format"}
+    
+    last_message = request.messages[-1] if request.messages else ""
+    last_message_langgraph_content = from_assistant_ui_contents_to_langgraph_contents(last_message['content'])
+    input_message = [{
+        "role": "user",
+        "content": last_message_langgraph_content
+    }]
 
     return StreamingResponse(
         generate_stream(graph, input_message, conversation_id),

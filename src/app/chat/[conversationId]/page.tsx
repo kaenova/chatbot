@@ -53,7 +53,7 @@ function ChatPage() {
     },
   }
 
-   const runtime = ChatWithConversationIDAPIRuntime(conversationId, HistoryAdapter)
+  const runtime = ChatWithConversationIDAPIRuntime(conversationId, HistoryAdapter)
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>

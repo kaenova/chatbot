@@ -5,6 +5,7 @@ import {
   ErrorPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  useAssistantState,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
@@ -35,11 +36,20 @@ import { getSiteConfig } from "@/lib/site-config";
 import { getTimeOfDay } from "@/utils/time-utils";
 import { ChatMessageSkeleton } from "@/components/ChatMessageSkeleton";
 
+const Settings = {
+  attachments: true,
+  editMessages: false, // Currently we dont support editing user messages
+  regenerate: false, // Currently we dont support regenerating assistant messages
+}
+
 interface ThreadProps {
   isLoading?: boolean;
 }
 
 export const Thread: FC<ThreadProps> = ({ isLoading = false }) => {
+
+
+
   return (
     <LazyMotion features={domAnimation}>
       <MotionConfig reducedMotion="user">
@@ -220,8 +230,13 @@ interface ComposerProps {
 }
 
 const Composer: FC<ComposerProps> = ({ isDisabled = false }) => {
+
+  const threadExist = useAssistantState(({thread}) => thread.messages.length > 0)
+  const text = useAssistantState(({composer}) => composer.text)
+  const isEmpty = text.trim().length < 1
+
   return (
-    <div className="aui-composer-wrapper sticky bottom-0 mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 overflow-visible rounded-t-3xl bg-background pb-4 md:pb-6">
+    <div className="aui-composer-wrapper sticky bottom-0 mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 overflow-visible rounded-t-3xl bg-background pb-2 md:pb-4">
       <ThreadScrollToBottom />
       {
         !isDisabled &&
@@ -229,21 +244,34 @@ const Composer: FC<ComposerProps> = ({ isDisabled = false }) => {
         <ThreadWelcomeSuggestions />
       </ThreadPrimitive.Empty>
       }
-      <ComposerPrimitive.Root className={cn(
-        "aui-composer-root relative flex w-full flex-col rounded-3xl border border-border bg-muted px-1 pt-2 shadow-[0_9px_9px_0px_rgba(0,0,0,0.01),0_2px_5px_0px_rgba(0,0,0,0.06)] dark:border-muted-foreground/15",
-        isDisabled && "opacity-50 pointer-events-none"
-      )}>
-        <ComposerAttachments />
-        <ComposerPrimitive.Input
-          placeholder={isDisabled ? "Loading conversation..." : "Send a message..."}
-          className="aui-composer-input mb-1 max-h-32 min-h-16 w-full resize-none bg-transparent px-3.5 pt-1.5 pb-3 text-base outline-none placeholder:text-muted-foreground focus:outline-primary"
-          rows={1}
-          autoFocus={!isDisabled}
-          aria-label="Message input"
-          disabled={isDisabled}
-        />
-        <ComposerAction isDisabled={isDisabled} />
-      </ComposerPrimitive.Root>
+      <div className="flex flex-col space-y-2">
+        <ComposerPrimitive.Root className={cn(
+          "aui-composer-root relative flex w-full flex-col rounded-3xl border border-border bg-muted px-1 pt-2 shadow-[0_9px_9px_0px_rgba(0,0,0,0.01),0_2px_5px_0px_rgba(0,0,0,0.06)] dark:border-muted-foreground/15",
+          isDisabled && "opacity-50 pointer-events-none"
+        )}>
+          <ComposerAttachments />
+          <ComposerPrimitive.Input
+            placeholder={isDisabled ? "Loading conversation..." : "Send a message..."}
+            className="aui-composer-input mb-1 max-h-32 min-h-16 w-full resize-none bg-transparent px-3.5 pt-1.5 pb-3 text-base outline-none placeholder:text-muted-foreground focus:outline-primary"
+            rows={1}
+            autoFocus={!isDisabled}
+            aria-label="Message input"
+            disabled={isDisabled}
+            />
+          <ComposerAction isDisabled={isDisabled || isEmpty} />
+        </ComposerPrimitive.Root>
+        {
+          threadExist &&
+          <m.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="w-full text-muted-foreground text-xs text-center"
+          >
+            AI may be wrong. Verify important info.
+          </m.div>
+        }
+      </div>
     </div>
   );
 };
@@ -255,8 +283,10 @@ interface ComposerActionProps {
 const ComposerAction: FC<ComposerActionProps> = ({ isDisabled = false }) => {
   return (
     <div className="aui-composer-action-wrapper relative mx-1 mt-2 mb-2 flex items-center justify-between">
-      {/* Disable it for now, because we dont support file uploads yet
-      <ComposerAddAttachment /> */}
+      {
+        Settings.attachments &&
+        <ComposerAddAttachment />
+      }
 
       <ThreadPrimitive.If running={false}>
         <ComposerPrimitive.Send asChild>
@@ -347,10 +377,12 @@ const AssistantActionBar: FC = () => {
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
       <ActionBarPrimitive.Reload asChild>
-        {/* Disble for now, because we dont support regenerating messages yet
-        <TooltipIconButton tooltip="Refresh">
-          <RefreshCwIcon />
-        </TooltipIconButton> */}
+        {
+          Settings.regenerate &&
+          <TooltipIconButton tooltip="Refresh">
+            <RefreshCwIcon />
+          </TooltipIconButton>
+        }
       </ActionBarPrimitive.Reload>
     </ActionBarPrimitive.Root>
   );
@@ -363,7 +395,10 @@ const UserMessage: FC = () => {
         className="aui-user-message-root mx-auto grid w-full max-w-[var(--thread-max-width)] animate-in auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] gap-y-2 px-2 py-4 duration-200 fade-in slide-in-from-bottom-1 first:mt-3 last:mb-5 [&:where(>*)]:col-start-2"
         data-role="user"
       >
+      {
+        Settings.attachments &&
         <UserMessageAttachments />
+      }
 
         <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
           <div className="aui-user-message-content rounded-3xl bg-primary/15 px-5 py-2.5 break-words text-foreground">
@@ -371,8 +406,10 @@ const UserMessage: FC = () => {
           </div>
           <div className="aui-user-action-bar-wrapper absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 pr-2">
 
-          {/* Disable for now, because we dont support editing user messages yet
-            <UserActionBar /> */}
+          {
+            Settings.editMessages &&
+            <UserActionBar /> 
+          }
           </div>
         </div>
 

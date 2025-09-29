@@ -1,15 +1,24 @@
 'use client'
 
-import { ThreadHistoryAdapter, ThreadMessage } from "@assistant-ui/react";
-import { useDataStreamRuntime } from "@assistant-ui/react-data-stream";
+import { CompositeAttachmentAdapter, SimpleImageAttachmentAdapter, ThreadHistoryAdapter, ThreadMessage } from "@assistant-ui/react";
 import { formatRelativeTime } from "@/utils/date-utils";
-import { loadFromLanggraphStateHistoryJSON } from "@/utils/langgraph-message-conversion";
+import { loadFromLanggraphStateHistoryJSON } from "@/utils/langgraph/to-assistant-ui";
+import { useCustomDataStreamRuntime } from "@/utils/custom-data-stream-runtime";
 
 const BaseAPIPath = "/api/be"
 
+// Attachments Handler
+// For now, we only handle images -kaenova
+const CompositeAttachmentsAdapter = new CompositeAttachmentAdapter([
+  new SimpleImageAttachmentAdapter(),
+])
+
 // First Chat API Runtime (without conversation ID parameters)
-export const FirstChatAPIRuntime = () => useDataStreamRuntime({
+export const FirstChatAPIRuntime = () => useCustomDataStreamRuntime({
   api: `${BaseAPIPath}/chat`,
+  adapters: {
+    attachments: CompositeAttachmentsAdapter,
+  }
 })
 
 // Get Last Conversation ID from A User
@@ -36,11 +45,12 @@ export async function GetLastConversationId(): Promise<string | null> {
 // You need to provide the conversationId and historyAdapter
 // The conversationId is obtained from the URL parameters
 // The historyAdapter is used to load and append messages to the thread
-export const ChatWithConversationIDAPIRuntime = (conversationId: string, historyAdapter: ThreadHistoryAdapter) => useDataStreamRuntime({
+export const ChatWithConversationIDAPIRuntime = (conversationId: string, historyAdapter: ThreadHistoryAdapter) => useCustomDataStreamRuntime({
   api: `${BaseAPIPath}/conversations/${conversationId}/chat`,
   adapters: {
-    history: historyAdapter
-  }
+    history: historyAdapter,
+    attachments: CompositeAttachmentsAdapter,
+  },
 })
 
 type LoadHistoryResponseType = { message: ThreadMessage, parentId: string | null }[] | null

@@ -18,11 +18,11 @@ import { cn } from "@/lib/utils";
 import { SyntaxHighlighter } from "./shiki-highlighter";
 
 import { MermaidDiagram } from "@/components/assistant-ui/mermaid-diagram";
-import { DocPlaceholder, LinkPlaceholder } from "@/components/assistant-ui/custom-markdown/placeholders";
 
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
+import { CustomDocReference, CustomLinkReference } from "./custom-markdown";
 
 
 function normalizeCustomMathTags(input: string): string {
@@ -271,18 +271,20 @@ const defaultComponents = memoizeMarkdownComponents({
   CodeHeader,
   // Custom span handler for placeholder components
   span: ({ className, children, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => {
-    // Handle custom doc placeholders
+    // Handle custom doc 
+    // format: [doc-(...)]
     if (className === 'custom-doc-placeholder') {
       const dataProps = props as Record<string, string>;
       const id = dataProps['data-id'];
-      return <DocPlaceholder id={id} />;
+      return <CustomDocReference id={id} />;
     }
     
     // Handle custom link placeholders
+    // format: [link-(...)]
     if (className === 'custom-link-placeholder') {
       const dataProps = props as Record<string, string>;
       const url = dataProps['data-url'];
-      return <LinkPlaceholder url={url} />;
+      return <CustomLinkReference url={url} />;
     }
     
     // Default span behavior

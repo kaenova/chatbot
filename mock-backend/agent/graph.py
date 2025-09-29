@@ -8,6 +8,11 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.prebuilt import ToolNode
 import aiosqlite
 
+from langchain_core.messages.utils import (
+    trim_messages,
+    count_tokens_approximately
+)
+
 from .tools import AVAILABLE_TOOLS
 from .model import model
 
@@ -46,6 +51,16 @@ def call_model(state: AgentState, config = None) -> Dict[str, List[BaseMessage]]
         Dict containing the updated messages
     """
     messages = state["messages"]
+
+    # Trim messages to fit within token limit
+    messages = trim_messages(
+        state["messages"],
+        strategy="last",
+        token_counter=count_tokens_approximately,
+        max_tokens=120_000,
+        start_on="human",
+        end_on=("human", "tool"),
+    )
 
     system_prompt = """
 # Your Role

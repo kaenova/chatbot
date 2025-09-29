@@ -5,6 +5,7 @@ import {
   ErrorPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  useAssistantState,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
@@ -46,6 +47,9 @@ interface ThreadProps {
 }
 
 export const Thread: FC<ThreadProps> = ({ isLoading = false }) => {
+
+
+
   return (
     <LazyMotion features={domAnimation}>
       <MotionConfig reducedMotion="user">
@@ -226,6 +230,10 @@ interface ComposerProps {
 }
 
 const Composer: FC<ComposerProps> = ({ isDisabled = false }) => {
+
+  const text = useAssistantState(({composer}) => composer.text)
+  const isEmpty = text.trim().length < 1
+
   return (
     <div className="aui-composer-wrapper sticky bottom-0 mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 overflow-visible rounded-t-3xl bg-background pb-4 md:pb-6">
       <ThreadScrollToBottom />
@@ -248,7 +256,7 @@ const Composer: FC<ComposerProps> = ({ isDisabled = false }) => {
           aria-label="Message input"
           disabled={isDisabled}
         />
-        <ComposerAction isDisabled={isDisabled} />
+        <ComposerAction isDisabled={isDisabled || isEmpty} />
       </ComposerPrimitive.Root>
     </div>
   );

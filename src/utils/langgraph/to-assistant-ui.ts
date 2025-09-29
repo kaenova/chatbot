@@ -2,6 +2,8 @@
  * Conversion utilities for transforming Langgraph state messages to Assistant UI format
  */
 
+import type { CompleteAttachment } from "@assistant-ui/react";
+
 // Assistant UI Types (based on the documentation)
 export type TextMessagePart = {
   readonly type: "text";
@@ -121,7 +123,7 @@ export type ThreadSystemMessage = MessageCommonProps & {
 export type ThreadUserMessage = MessageCommonProps & {
   readonly role: "user";
   readonly content: readonly ThreadUserMessagePart[];
-  readonly attachments: readonly unknown[];
+  readonly attachments: readonly CompleteAttachment[];
   readonly metadata: {
     readonly custom: Record<string, unknown>;
   };
@@ -330,6 +332,162 @@ export function convertLangchainMessageContent(content: MessageContent): ThreadU
   }];
 }
 
+export function extractLangchainMessageTextContent(content: MessageContent): TextMessagePart[] {
+  if (typeof content === "string") {
+    return [{
+      type: "text" as const,
+      text: content,
+    }];
+  }
+
+  if (Array.isArray(content)) {
+    const textParts: TextMessagePart[] = [];
+
+    for (const item of content) {
+      if (typeof item === "string") {
+        textParts.push({
+          type: "text" as const,
+          text: item,
+        });
+      } else if (typeof item === "object" && item.type === "text" && typeof item.text === "string") {
+        textParts.push({
+          type: "text" as const,
+          text: item.text,
+        });
+      }
+      // Skip non-text items - they will be handled as attachments
+    }
+
+    return textParts;
+  }
+
+  return [{
+    type: "text" as const,
+    text: String(content),
+  }];
+}
+
+export function extractLangchainMessageAttachments(content: MessageContent): CompleteAttachment[] {
+  const attachments: CompleteAttachment[] = [];
+
+  if (typeof content === "string") {
+    // String content has no attachments
+    return attachments;
+  }
+
+  if (Array.isArray(content)) {
+    let attachmentIndex = 0;
+
+    for (const item of content) {
+      if (typeof item === "object" && item) {
+        // Handle image_url type (from your example)
+        if (item.type === "image_url" && item.image_url && typeof item.image_url === "object" && "url" in item.image_url && typeof item.image_url.url === "string") {
+          const url = item.image_url.url;
+          const isDataUrl = url.startsWith("data:");
+          
+          // Create image content for the attachment
+          const imageContent: ThreadUserMessagePart[] = [{
+            type: "image" as const,
+            image: url,
+          }];
+
+          attachments.push({
+            id: `attachment-${attachmentIndex++}`,
+            type: "image" as const,
+            name: `image-${attachmentIndex}.png`,
+            contentType: isDataUrl ? url.split(";")[0].substring(5) : "image/png",
+            status: { type: "complete" as const },
+            content: imageContent,
+          });
+        }
+        // Handle direct image type with base64
+        else if (item.type === "image" && "source_type" in item && item.source_type === "base64" && "data" in item && typeof item.data === "string" && "mime_type" in item && typeof item.mime_type === "string") {
+          const dataUrl = `data:${item.mime_type};base64,${item.data}`;
+          
+          const imageContent: ThreadUserMessagePart[] = [{
+            type: "image" as const,
+            image: dataUrl,
+          }];
+
+          attachments.push({
+            id: `attachment-${attachmentIndex++}`,
+            type: "image" as const,
+            name: `image-${attachmentIndex}.${getFileExtensionFromMimeType(item.mime_type)}`,
+            contentType: item.mime_type,
+            status: { type: "complete" as const },
+            content: imageContent,
+          });
+        }
+        // Handle direct image type with url
+        else if (item.type === "image" && "image" in item && typeof item.image === "string") {
+          const imageUrl = item.image;
+          const isDataUrl = imageUrl.startsWith("data:");
+          
+          const imageContent: ThreadUserMessagePart[] = [{
+            type: "image" as const,
+            image: imageUrl,
+          }];
+
+          attachments.push({
+            id: `attachment-${attachmentIndex++}`,
+            type: "image" as const,
+            name: `image-${attachmentIndex}.png`,
+            contentType: isDataUrl ? imageUrl.split(";")[0].substring(5) : "image/png",
+            status: { type: "complete" as const },
+            content: imageContent,
+          });
+        }
+        // Handle file attachments (if they exist in the future)
+        else if (item.type === "file" && "data" in item && typeof item.data === "string" && "mime_type" in item && typeof item.mime_type === "string") {
+          const filename = ("filename" in item && typeof item.filename === "string") 
+            ? item.filename 
+            : `file-${attachmentIndex}.${getFileExtensionFromMimeType(item.mime_type)}`;
+
+          const fileContent: ThreadUserMessagePart[] = [{
+            type: "file" as const,
+            filename,
+            data: item.data,
+            mimeType: item.mime_type,
+          }];
+
+          attachments.push({
+            id: `attachment-${attachmentIndex++}`,
+            type: "file" as const,
+            name: filename,
+            contentType: item.mime_type,
+            status: { type: "complete" as const },
+            content: fileContent,
+          });
+        }
+      }
+    }
+  }
+
+  return attachments;
+}
+
+// Helper function to get file extension from MIME type
+function getFileExtensionFromMimeType(mimeType: string): string {
+  const mimeToExtension: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/svg+xml": "svg",
+    "text/plain": "txt",
+    "application/pdf": "pdf",
+    "application/json": "json",
+    "application/xml": "xml",
+    "text/html": "html",
+    "text/css": "css",
+    "text/javascript": "js",
+    "application/javascript": "js",
+  };
+
+  return mimeToExtension[mimeType] || "bin";
+}
+
 export function convertLangchainToolCalls(
   toolCalls: ToolCall[], 
   toolResults?: Map<string, { result: string; isError: boolean }>
@@ -365,14 +523,15 @@ export function convertLangchainMessageToThreadMessage(
 
   // Convert based on message type
   if (langchainMsg.id[3] === "HumanMessage") {
-    const content = convertLangchainMessageContent(langchainMsg.kwargs.content) as ThreadUserMessagePart[];
+    const textContent = extractLangchainMessageTextContent(langchainMsg.kwargs.content);
+    const attachments = extractLangchainMessageAttachments(langchainMsg.kwargs.content);
     
     return {
       id: messageId,
       role: "user" as const,
       createdAt,
-      content,
-      attachments: [],
+      content: textContent,
+      attachments,
       metadata: {
         custom: {},
       },

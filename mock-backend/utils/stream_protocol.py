@@ -19,7 +19,7 @@ async def generate_stream(graph: CompiledStateGraph, input_message: List[HumanMe
     token_count = 0
 
     try:
-        async for msg, metadata in graph.astream(
+        for msg, metadata in graph.stream(
             {"messages": input_message},
             config={"configurable": {"thread_id": conversation_id}},
             stream_mode="messages",

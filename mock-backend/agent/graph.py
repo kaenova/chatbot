@@ -7,6 +7,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.prebuilt import ToolNode
 import aiosqlite
+import sqlite3
 
 from langchain_core.messages.utils import (
     trim_messages,
@@ -145,8 +146,8 @@ If you cannot find supporting documents: explicitly say "No matching documents f
 
 
 # Initialize checkpointer
-db = aiosqlite.connect("./mock.db")
-checkpointer = AsyncSqliteSaver(db)
+db = sqlite3.connect("mock.db", check_same_thread=False)
+checkpointer = SqliteSaver(db)
 
 # Create the graph
 workflow = StateGraph(AgentState)

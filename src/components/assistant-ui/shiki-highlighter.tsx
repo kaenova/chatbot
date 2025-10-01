@@ -43,7 +43,7 @@ export const SyntaxHighlighter: FC<HighlighterProps> = ({
   return (
     <ShikiHighlighter
       {...props}
-      language={language}
+      language={language == 'unknown' ? 'plaintext' : language}
       theme={theme}
       addDefaultStyles={addDefaultStyles}
       showLanguage={showLanguage}

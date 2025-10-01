@@ -64,6 +64,8 @@ export const MermaidDiagram: FC<MermaidDiagramProps> = ({
   useEffect(() => {
     if (!isComplete) return;
 
+    if (!code || !ref.current) return;
+
     (async () => {
       try {
         const id = `mermaid-${Math.random().toString(36).slice(2)}`;

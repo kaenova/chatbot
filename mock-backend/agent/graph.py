@@ -8,6 +8,8 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.prebuilt import ToolNode
 import aiosqlite
 import sqlite3
+from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+import os
 
 from langchain_core.messages.utils import (
     trim_messages,
@@ -146,8 +148,11 @@ If you cannot find supporting documents: explicitly say "No matching documents f
 
 
 # Initialize checkpointer
+## Using SQLITE checkpointer for simplicity
 db = sqlite3.connect("mock.db", check_same_thread=False)
 checkpointer = SqliteSaver(db)
+## Testing: Using CosmosDB checkpointer
+# saver = CosmosDBSaver(database_name=os.getenv("COSMOSDB_DATABASE_NAME"), container_name=os.getenv("COSMOSDB_CONTAINER_NAME"))
 
 # Create the graph
 workflow = StateGraph(AgentState)
